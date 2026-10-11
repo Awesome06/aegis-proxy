@@ -103,7 +103,7 @@ jobs:
           cat checksums.txt
 
       - name: Attest Build Provenance (SLSA v1.0)
-        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae557ac03d454234743a70 # v1.4.2
+        uses: actions/attest-build-provenance@6149ea5740be74af77f260b9db67e633f6b0a9a1 # v1.4.2
         with:
           subject-path: 'dist/*'
 
