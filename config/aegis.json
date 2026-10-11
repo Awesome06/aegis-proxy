@@ -1,0 +1,26 @@
+{
+  "listen_addr": ":8443",
+  "default_upstream": "",
+  "max_connections": 10000,
+  "read_timeout_seconds": 5,
+  "dial_timeout_seconds": 5,
+  "dns_upstreams": [
+    "1.1.1.1:53",
+    "8.8.8.8:53"
+  ],
+  "dns_timeout_seconds": 2,
+  "l3_whitelist_cidrs": [
+    "127.0.0.1/32",
+    "10.0.0.0/8",
+    "172.16.0.0/12",
+    "192.168.0.0/16",
+    "::1/128",
+    "fe80::/10"
+  ],
+  "l7_blacklist_domains": [
+    "malware.com",
+    "*.evil-tracker.net",
+    ".crypto-miner.org"
+  ],
+  "metrics_addr": ":9090"
+}
