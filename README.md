@@ -3,9 +3,9 @@
 <!-- Badges: CI / Build / Coverage / License -->
 [![Go Version](https://img.shields.io/badge/Go-1.27+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat)]()
-[![Zero Dependencies](https://img.shields.io/badge/Dependencies-0%20(Pure%20Stdlib)-blue?style=flat)]()
-[![Hot-Path Allocations](https://img.shields.io/badge/Hot--Path%20Allocations-0%20allocs%2Fop-success?style=flat)]()
-[![Test Coverage](https://img.shields.io/badge/Coverage-91.5%25%20Overall-success?style=flat)]()
+[![Zero Dependencies](https://img.shields.io/badge/Dependencies-0_External-blue?style=flat)]()
+[![Hot-Path Allocations](https://img.shields.io/badge/Hot--Path_Allocs-0_allocs-success?style=flat)]()
+[![Test Coverage](https://img.shields.io/badge/Coverage-91.5%25-brightgreen?style=flat)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 *A high-concurrency L3-L7 forward proxy and traffic interceptor engineered in pure Go without external dependencies, designed to mirror Zscaler's Single-Scan Multi-Engine data-plane architecture with zero heap allocations on the hot path.*
