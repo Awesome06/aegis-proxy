@@ -1,12 +1,12 @@
 # Aegis — Zero Trust Forward Proxy (L3-L7 Traffic Interceptor)
 
 <!-- Badges: CI / Build / Coverage / License -->
-[![Go Version](https://img.shields.io/badge/Go-1.27+-00ADD8?style=flat&logo=go)](https://golang.org)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen?style=flat)]()
-[![Zero Dependencies](https://img.shields.io/badge/Dependencies-0_External-blue?style=flat)]()
-[![Hot-Path Allocations](https://img.shields.io/badge/Hot--Path_Allocs-0_allocs-success?style=flat)]()
-[![Test Coverage](https://img.shields.io/badge/Coverage-91.5%25-brightgreen?style=flat)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/go-1.27+-00ADD8?logo=go)](https://golang.org)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#quick-start)
+[![Zero Dependencies](https://img.shields.io/badge/dependencies-0%20external-blue)](go.mod)
+[![Hot-Path Allocations](https://img.shields.io/badge/hot--path-0%20allocs-brightgreen)](#performance--quality-targets)
+[![Test Coverage](https://img.shields.io/badge/coverage-91.5%25-brightgreen)](#test-coverage-matrix)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 *A high-concurrency L3-L7 forward proxy and traffic interceptor engineered in pure Go without external dependencies, designed to mirror Zscaler's Single-Scan Multi-Engine data-plane architecture with zero heap allocations on the hot path.*
 
@@ -25,29 +25,37 @@ Before modifying this codebase, adhere to these core principles:
 ## System Architecture
 
 ```mermaid
-flowchart TD
-    Client[Incoming Client TCP Conn] --> L3Check{L3 Patricia Trie Check}
-    L3Check -- IP Not in Allowlist --> DropConn[Immediate conn.Close & Telemetry Log]
-    L3Check -- Whitelisted --> Peek[Peek Initial Handshake Buffer]
-    
-    Peek --> TLSCheck{Is TLS Handshake 0x16?}
-    TLSCheck -- No / Plain TCP --> RouteDefault[Route to Default Upstream]
-    TLSCheck -- Yes --> ParseTLS[Byte-Level ClientHello Parser]
-    
-    ParseTLS --> ExtractMetadata[Extract SNI Hostname & ALPN h2/http1.1]
-    ExtractMetadata --> BlacklistCheck{L7 Domain Blacklist?}
-    BlacklistCheck -- Blacklisted --> DropConn
-    BlacklistCheck -- Permitted --> DNSResolve[Custom RFC 1035 UDP DNS Engine]
-    
-    DNSResolve --> CacheCheck{Concurrent TTL Cache?}
-    CacheCheck -- Cache Hit --> DialUpstream[Dial Resolved Target IP:443]
-    CacheCheck -- Cache Miss --> QueryUDP[Raw UDP Query to 1.1.1.1:53 / 8.8.8.8:53]
-    QueryUDP --> StoreTTL[Store in sync.RWMutex Cache] --> DialUpstream
-    
-    DialUpstream --> ReplayInitial[Forward Unaltered ClientHello Bytes]
-    ReplayInitial --> ZeroAllocRelay[Bidirectional Relay Engine]
-    ZeroAllocRelay --> BufferPool[sync.Pool 32KB Buffers / Linux Splice]
-    BufferPool --> UpstreamDest[(Upstream Destination)]
+flowchart LR
+    subgraph L3["Layer 3: Zero Trust Ingress"]
+        direction TB
+        Client[Client TCP] --> L3Check{L3 Patricia Trie}
+        L3Check -- Denied --> Drop1[conn.Close]
+        L3Check -- Allowed --> Peek[Peek Initial Bytes]
+    end
+
+    subgraph L6["Layer 6: TLS/SNI Inspection"]
+        direction TB
+        Peek --> TLSCheck{TLS 0x16?}
+        TLSCheck -- Plain TCP --> DefRoute[Default Upstream]
+        TLSCheck -- TLS --> ParseTLS[Extract SNI & ALPN]
+        ParseTLS --> SNICheck{L7 Blacklist?}
+        SNICheck -- Blocked --> Drop2[conn.Close]
+    end
+
+    subgraph L7["Layer 7: Custom UDP DNS"]
+        direction TB
+        SNICheck -- Permitted --> CacheCheck{TTL Cache Hit?}
+        CacheCheck -- Hit --> Dial[Dial Target IP:443]
+        CacheCheck -- Miss --> WireDNS[Raw UDP to 1.1.1.1:53]
+        WireDNS --> Cache[Store in Cache] --> Dial
+    end
+
+    subgraph L4["Layer 4: Zero-Alloc Relay"]
+        direction TB
+        DefRoute --> Relay[sync.Pool 32KB Relay]
+        Dial --> Replay[Replay ClientHello] --> Relay
+        Relay <--> Upstream[(Upstream Server)]
+    end
 ```
 
 ### Wire Format Protocols Implemented
