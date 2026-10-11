@@ -149,6 +149,46 @@ func TestBlacklistFilter(t *testing.T) {
 			}
 		})
 	}
+
+	// Empty hostname check
+	blocked, _ := filter.IsBlocked("")
+	if blocked {
+		t.Fatalf("expected empty hostname to not be blocked")
+	}
+
+	// UpdateRules with empty and whitespace rules
+	filter.UpdateRules([]string{"", "  ", "safe.org"})
+	blocked, _ = filter.IsBlocked("safe.org")
+	if !blocked {
+		t.Fatalf("expected safe.org to be blocked after update")
+	}
+}
+
+func TestParseClientHello_EdgeCases(t *testing.T) {
+	// 1. ClientHello without extensions
+	noExt := buildSyntheticClientHello("", nil)
+	info, err := ParseClientHello(noExt)
+	if err != nil {
+		t.Fatalf("unexpected error parsing ClientHello without extensions: %v", err)
+	}
+	if info.SNI != "" {
+		t.Fatalf("expected empty SNI, got %q", info.SNI)
+	}
+
+	// 2. ClientHello with broken handshake header (wrong handshake type 0x02 instead of 0x01)
+	brokenHS := make([]byte, len(noExt))
+	copy(brokenHS, noExt)
+	brokenHS[5] = 0x02 // ServerHello instead of ClientHello
+	_, err = ParseClientHello(brokenHS)
+	if err == nil {
+		t.Fatalf("expected error on non-ClientHello handshake type")
+	}
+
+	// 3. Short buffer (< 44 bytes)
+	_, err = ParseClientHello(make([]byte, 20))
+	if err == nil {
+		t.Fatalf("expected error on buffer < 44 bytes")
+	}
 }
 
 func BenchmarkParseClientHello(b *testing.B) {

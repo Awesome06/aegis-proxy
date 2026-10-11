@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -82,6 +83,11 @@ func main() {
 			_, _ = w.Write([]byte(`{"status":"UP","service":"aegis-proxy"}`))
 		})
 		mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Query().Get("format") == "prometheus" || strings.Contains(r.Header.Get("Accept"), "text/plain") {
+				w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+				_, _ = w.Write([]byte(telemetry.GlobalMetrics.PrometheusFormat()))
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
 			snapshot := telemetry.GlobalMetrics.ReadSnapshot()
 			_ = json.NewEncoder(w).Encode(snapshot)

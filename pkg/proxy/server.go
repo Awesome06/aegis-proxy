@@ -38,6 +38,7 @@ type Server struct {
 	semaphore   chan struct{}
 
 	listener net.Listener
+	readyCh  chan struct{}
 	mu       sync.Mutex
 	running  bool
 	wg       sync.WaitGroup
@@ -71,7 +72,13 @@ func NewServer(
 		blacklist:   blacklist,
 		logger:      logger,
 		semaphore:   make(chan struct{}, cfg.MaxConnections),
+		readyCh:     make(chan struct{}),
 	}
+}
+
+// Ready returns a channel that is closed when the server has successfully bound its listener.
+func (s *Server) Ready() <-chan struct{} {
+	return s.readyCh
 }
 
 // Addr returns the bound network address of the active listener, or nil if not yet started.
@@ -94,6 +101,11 @@ func (s *Server) Start(ctx context.Context) error {
 	s.mu.Lock()
 	s.listener = l
 	s.running = true
+	select {
+	case <-s.readyCh:
+	default:
+		close(s.readyCh)
+	}
 	s.mu.Unlock()
 
 	s.logger.InfoContext(ctx, "proxy_server_started",

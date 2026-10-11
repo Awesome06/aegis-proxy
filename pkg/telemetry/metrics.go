@@ -1,6 +1,9 @@
 package telemetry
 
-import "sync/atomic"
+import (
+	"strconv"
+	"sync/atomic"
+)
 
 // Metrics holds lock-free atomic telemetry counters across all proxy layers.
 type Metrics struct {
@@ -42,3 +45,41 @@ func (m *Metrics) ReadSnapshot() Snapshot {
 		BytesRelayedServerToClient: m.BytesRelayedServerToClient.Load(),
 	}
 }
+
+// PrometheusFormat serializes active metrics into standard Prometheus text exposition format.
+func (m *Metrics) PrometheusFormat() string {
+	s := m.ReadSnapshot()
+	return "# HELP aegis_total_connections_total Total number of accepted connections.\n" +
+		"# TYPE aegis_total_connections_total counter\n" +
+		"aegis_total_connections_total " + formatUint(s.TotalConnections) + "\n" +
+		"# HELP aegis_active_connections Current active in-flight connections.\n" +
+		"# TYPE aegis_active_connections gauge\n" +
+		"aegis_active_connections " + formatInt(s.ActiveConnections) + "\n" +
+		"# HELP aegis_l3_blocked_connections_total Number of connections dropped by L3 CIDR policy.\n" +
+		"# TYPE aegis_l3_blocked_connections_total counter\n" +
+		"aegis_l3_blocked_connections_total " + formatUint(s.L3BlockedConnections) + "\n" +
+		"# HELP aegis_l7_blocked_domains_total Number of connections terminated by L7 SNI blacklist.\n" +
+		"# TYPE aegis_l7_blocked_domains_total counter\n" +
+		"aegis_l7_blocked_domains_total " + formatUint(s.L7BlockedDomains) + "\n" +
+		"# HELP aegis_dns_queries_total Total number of DNS resolution requests.\n" +
+		"# TYPE aegis_dns_queries_total counter\n" +
+		"aegis_dns_queries_total " + formatUint(s.DNSQueriesTotal) + "\n" +
+		"# HELP aegis_dns_cache_hits_total Number of DNS queries served from TTL cache.\n" +
+		"# TYPE aegis_dns_cache_hits_total counter\n" +
+		"aegis_dns_cache_hits_total " + formatUint(s.DNSCacheHits) + "\n" +
+		"# HELP aegis_bytes_relayed_client_to_server_total Bytes forwarded from client to upstream.\n" +
+		"# TYPE aegis_bytes_relayed_client_to_server_total counter\n" +
+		"aegis_bytes_relayed_client_to_server_total " + formatUint(s.BytesRelayedClientToServer) + "\n" +
+		"# HELP aegis_bytes_relayed_server_to_client_total Bytes forwarded from upstream to client.\n" +
+		"# TYPE aegis_bytes_relayed_server_to_client_total counter\n" +
+		"aegis_bytes_relayed_server_to_client_total " + formatUint(s.BytesRelayedServerToClient) + "\n"
+}
+
+func formatUint(v uint64) string {
+	return strconv.FormatUint(v, 10)
+}
+
+func formatInt(v int64) string {
+	return strconv.FormatInt(v, 10)
+}
+

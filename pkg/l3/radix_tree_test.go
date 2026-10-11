@@ -124,6 +124,120 @@ func TestPolicyEngine_AtomicUpdates(t *testing.T) {
 	}
 }
 
+func TestRadixTree_EdgeCasesAndErrors(t *testing.T) {
+	tree := NewRadixTree()
+
+	// 1. Invalid CIDR notation
+	err := tree.InsertCIDR("not-a-cidr")
+	if err == nil {
+		t.Fatalf("expected error on invalid CIDR")
+	}
+
+	// 2. Count verification
+	if tree.Count() != 0 {
+		t.Fatalf("expected count 0, got %d", tree.Count())
+	}
+	_ = tree.InsertCIDR("10.0.0.0/8")
+	if tree.Count() != 1 {
+		t.Fatalf("expected count 1, got %d", tree.Count())
+	}
+
+	// 3. Nil IP lookup
+	_, ok := tree.LongestPrefixMatch(nil)
+	if ok {
+		t.Fatalf("expected false on nil IP")
+	}
+	if tree.Contains(nil) {
+		t.Fatalf("expected Contains(nil) to be false")
+	}
+
+	// 4. Default Route 0.0.0.0/0
+	defaultTree := NewRadixTree()
+	_ = defaultTree.InsertCIDR("0.0.0.0/0")
+	matched, found := defaultTree.LongestPrefixMatch(net.ParseIP("203.0.113.1"))
+	if !found || matched != "0.0.0.0/0" {
+		t.Fatalf("expected default route match for 203.0.113.1, got %s, found=%v", matched, found)
+	}
+
+	// 5. Default Route ::/0
+	defaultV6Tree := NewRadixTree()
+	_ = defaultV6Tree.InsertCIDR("::/0")
+	matched6, found6 := defaultV6Tree.LongestPrefixMatch(net.ParseIP("2001:db8::1"))
+	if !found6 || matched6 != "::/0" {
+		t.Fatalf("expected default v6 route match, got %s, found=%v", matched6, found6)
+	}
+}
+
+func TestPolicyEngine_EvaluateAddrVariants(t *testing.T) {
+	engine, err := NewPolicyEngine([]string{"192.168.1.0/24"})
+	if err != nil {
+		t.Fatalf("failed to init engine: %v", err)
+	}
+
+	// 1. Nil address
+	ok, _ := engine.EvaluateAddr(nil)
+	if ok {
+		t.Fatalf("expected nil addr to be rejected")
+	}
+
+	// 2. TCPAddr
+	tcpAddr := &net.TCPAddr{IP: net.ParseIP("192.168.1.5"), Port: 12345}
+	ok, _ = engine.EvaluateAddr(tcpAddr)
+	if !ok {
+		t.Fatalf("expected TCPAddr 192.168.1.5 to be allowed")
+	}
+
+	// 3. UDPAddr
+	udpAddr := &net.UDPAddr{IP: net.ParseIP("192.168.1.6"), Port: 53}
+	ok, _ = engine.EvaluateAddr(udpAddr)
+	if !ok {
+		t.Fatalf("expected UDPAddr 192.168.1.6 to be allowed")
+	}
+
+	// 4. IPAddr
+	ipAddr := &net.IPAddr{IP: net.ParseIP("192.168.1.7")}
+	ok, _ = engine.EvaluateAddr(ipAddr)
+	if !ok {
+		t.Fatalf("expected IPAddr 192.168.1.7 to be allowed")
+	}
+
+	// 5. Custom string addr with port
+	pipeAddr := customAddr("192.168.1.8:8080")
+	ok, _ = engine.EvaluateAddr(pipeAddr)
+	if !ok {
+		t.Fatalf("expected string addr with port to be allowed")
+	}
+
+	// 6. Custom string addr without port
+	rawAddr := customAddr("192.168.1.9")
+	ok, _ = engine.EvaluateAddr(rawAddr)
+	if !ok {
+		t.Fatalf("expected raw string addr without port to be allowed")
+	}
+
+	// 7. RuleCount
+	if engine.RuleCount() != 1 {
+		t.Fatalf("expected rule count 1, got %d", engine.RuleCount())
+	}
+
+	// 8. NewPolicyEngine with invalid initial CIDR
+	_, err = NewPolicyEngine([]string{"invalid"})
+	if err == nil {
+		t.Fatalf("expected error from NewPolicyEngine with invalid CIDR")
+	}
+
+	// 9. UpdateRules with invalid CIDR
+	err = engine.UpdateRules([]string{"invalid"})
+	if err == nil {
+		t.Fatalf("expected error from UpdateRules with invalid CIDR")
+	}
+}
+
+type customAddr string
+
+func (a customAddr) Network() string { return "custom" }
+func (a customAddr) String() string  { return string(a) }
+
 func BenchmarkRadixTree_LongestPrefixMatch(b *testing.B) {
 	tree := NewRadixTree()
 	_ = tree.InsertCIDR("10.0.0.0/8")
@@ -139,3 +253,4 @@ func BenchmarkRadixTree_LongestPrefixMatch(b *testing.B) {
 		_, _ = tree.LongestPrefixMatch(ip)
 	}
 }
+

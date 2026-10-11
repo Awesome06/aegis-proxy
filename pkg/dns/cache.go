@@ -53,13 +53,18 @@ func (c *Cache) Get(hostname string) ([]net.IP, bool) {
 
 // Set stores resolved IPs with the specified TTL in seconds.
 func (c *Cache) Set(hostname string, ips []net.IP, ttl uint32) {
+	c.SetWithExpiration(hostname, ips, time.Now().Add(time.Duration(ttl)*time.Second), ttl)
+}
+
+// SetWithExpiration stores resolved IPs with an explicit expiration time, enabling deterministic testing.
+func (c *Cache) SetWithExpiration(hostname string, ips []net.IP, expiresAt time.Time, ttl uint32) {
 	if len(ips) == 0 {
 		return
 	}
 	key := strings.ToLower(strings.TrimSuffix(hostname, "."))
 	entry := cacheEntry{
 		ips:       ips,
-		expiresAt: time.Now().Add(time.Duration(ttl) * time.Second),
+		expiresAt: expiresAt,
 		ttl:       ttl,
 	}
 
