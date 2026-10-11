@@ -21,9 +21,9 @@ var (
 
 // ClientHelloInfo holds extracted metadata from a zero-termination inspection pass.
 type ClientHelloInfo struct {
-	SNI       string
+	SNI        string
 	ALPNProtos []string
-	Version   uint16
+	Version    uint16
 }
 
 // IsTLS returns true if the leading bytes match a TLS Handshake record (0x16).

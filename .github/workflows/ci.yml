@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Security & Static Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Go Toolchain
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Verify Code Formatting
+        run: |
+          UNFORMATTED=$(gofmt -s -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "Unformatted Go code detected:"
+            echo "$UNFORMATTED"
+            exit 1
+          fi
+
+      - name: Run Go Vet
+        run: go vet ./...
+
+      - name: Validate Workflow Syntax (actionlint)
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
+
+      - name: Audit Workflow Security (zizmor)
+        run: |
+          pip install zizmor
+          zizmor .github/workflows/
+
+  test-matrix:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Go Toolchain
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Run Unit & Integration Tests
+        run: go test -v -covermode=atomic -coverprofile=coverage.out ./...
+
+      - name: Run Race Detector (Linux Only)
+        if: runner.os == 'Linux'
+        run: go test -race ./...
+
+      - name: Verify Hot-Path Allocation Benchmarks
+        run: go test -v -bench="." -run="^$" -benchmem ./...
+
+      - name: Upload Test Coverage Artifact
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf6581a12fe429233114 # v4.4.3
+        with:
+          name: coverage-report
+          path: coverage.out
+          retention-days: 7
+
+  build-check:
+    name: Cross-Platform Build Sanity
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Go Toolchain
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Build Standalone Binary
+        run: |
+          mkdir -p bin
+          CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bin/aegis ./cmd/aegis

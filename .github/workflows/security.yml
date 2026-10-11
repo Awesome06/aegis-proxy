@@ -1,0 +1,51 @@
+name: Security Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  codeql:
+    name: CodeQL SAST Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read # Required to checkout code
+      security-events: write # Required to upload CodeQL SARIF results to repository Security tab
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Go Toolchain
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@8c78abb9b62512e3c45dea6559ffd924ed8549c8 # v3.28.0
+        with:
+          languages: go
+          queries: security-extended
+
+      - name: Build Application
+        run: |
+          go build -trimpath -ldflags="-s -w" -o /dev/null ./cmd/aegis
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@8c78abb9b62512e3c45dea6559ffd924ed8549c8 # v3.28.0
+        with:
+          category: /language:go

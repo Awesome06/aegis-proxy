@@ -18,9 +18,9 @@ func buildSyntheticClientHello(sni string, alpnProtos []string) []byte {
 	for i := 0; i < 32; i++ {
 		payload = append(payload, 0x01) // Random
 	}
-	payload = append(payload, 0x00)       // Session ID Length = 0
+	payload = append(payload, 0x00)                   // Session ID Length = 0
 	payload = append(payload, 0x00, 0x02, 0xC0, 0x2F) // Cipher Suites
-	payload = append(payload, 0x01, 0x00) // Compression Methods (1, 0)
+	payload = append(payload, 0x01, 0x00)             // Compression Methods (1, 0)
 
 	// Extensions
 	var extBytes []byte

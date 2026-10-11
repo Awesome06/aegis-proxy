@@ -1,11 +1,10 @@
 # Aegis — Zero Trust Forward Proxy (L3-L7 Traffic Interceptor)
 
-<!-- Badges: CI / Build / Coverage / License -->
-[![Go Version](https://img.shields.io/badge/go-1.27+-00ADD8?logo=go)](https://golang.org)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#quick-start)
+<!-- Badges: CI / Coverage / Architecture / Performance / License -->
+[![CI](https://github.com/Awesome06/aegis-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/Awesome06/aegis-proxy/actions/workflows/ci.yml)
+[![Test Coverage](https://img.shields.io/badge/coverage-91.5%25-brightgreen?v=2)](#test-coverage-matrix)
 [![Zero Dependencies](https://img.shields.io/badge/dependencies-0_external-blue?v=2)](go.mod)
 [![Hot-Path Allocations](https://img.shields.io/badge/hot_path-0_allocs-brightgreen?v=2)](#performance--quality-targets)
-[![Test Coverage](https://img.shields.io/badge/coverage-91.5%25-brightgreen?v=2)](#test-coverage-matrix)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 *A high-concurrency L3-L7 forward proxy and traffic interceptor engineered in pure Go without external dependencies, designed to mirror Zscaler's Single-Scan Multi-Engine data-plane architecture with zero heap allocations on the hot path.*
@@ -231,3 +230,42 @@ curl -v -x http://127.0.0.1:8443 https://malware.com
 curl http://127.0.0.1:9090/metrics
 curl "http://127.0.0.1:9090/metrics?format=prometheus"
 ```
+
+---
+
+## CI/CD & DevSecOps Architecture
+
+[![Security (CodeQL)](https://github.com/Awesome06/aegis-proxy/actions/workflows/security.yml/badge.svg)](https://github.com/Awesome06/aegis-proxy/actions/workflows/security.yml)
+[![SLSA Level 3](https://img.shields.io/badge/SLSA-Level_3-brightgreen?logo=slsa)](https://slsa.dev)
+
+Aegis enforces a defense-in-depth, zero-trust continuous delivery pipeline verified against strict static security linters:
+
+```mermaid
+flowchart TD
+    subgraph Gate1["Security & Audit Gate"]
+        G1[Git Push / PR] --> L1[actionlint Workflow Syntax]
+        G1 --> L2[zizmor Security Linter]
+        G1 --> L3[gofmt & go vet]
+    end
+
+    subgraph Gate2["Cross-Platform Test Matrix"]
+        L3 --> T1[Ubuntu Tests + Race Detector]
+        L3 --> T2[macOS Matrix Test]
+        L3 --> T3[Windows Matrix Test]
+        L3 --> T4[Zero-Alloc Benchmark Gate]
+    end
+
+    subgraph Gate3["Release & Supply Chain Integrity"]
+        Tag[Version Tag v*.*.*] --> B1[Multi-Arch Cross Compilation<br/>Linux/macOS/Windows amd64/arm64]
+        B1 --> B2[SHA256 Checksums]
+        B2 --> B3[SLSA Level 3 Provenance<br/>actions/attest-build-provenance]
+        B3 --> B4[GitHub Release via Native gh CLI]
+    end
+```
+
+### Pipeline Guarantees
+- **Action Pinning:** 100% of GitHub Actions are pinned to immutable 40-character commit SHAs with version annotations.
+- **Supply Chain Hardening:** Workflow runs use `persist-credentials: false` (mitigating Artipacked credential leaks) and release workflows disable caching to prevent cache poisoning.
+- **Deep Static Analysis (SAST):** Scheduled GitHub CodeQL scans verify memory safety, concurrency, and buffer integrity.
+- **Cryptographic Provenance:** Production releases automatically generate SLSA Level 3 build provenance attestations via OIDC tokens.
+

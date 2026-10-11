@@ -9,16 +9,16 @@ import (
 
 // Config defines the runtime configuration schema for Aegis.
 type Config struct {
-	ListenAddr          string   `json:"listen_addr"`
-	DefaultUpstream     string   `json:"default_upstream"`
-	MaxConnections      int      `json:"max_connections"`
-	ReadTimeoutSeconds  int      `json:"read_timeout_seconds"`
-	DialTimeoutSeconds  int      `json:"dial_timeout_seconds"`
-	DNSUpstreams        []string `json:"dns_upstreams"`
-	DNSTimeoutSeconds   int      `json:"dns_timeout_seconds"`
-	L3WhitelistCIDRs    []string `json:"l3_whitelist_cidrs"`
-	L7BlacklistDomains  []string `json:"l7_blacklist_domains"`
-	MetricsAddr         string   `json:"metrics_addr"`
+	ListenAddr         string   `json:"listen_addr"`
+	DefaultUpstream    string   `json:"default_upstream"`
+	MaxConnections     int      `json:"max_connections"`
+	ReadTimeoutSeconds int      `json:"read_timeout_seconds"`
+	DialTimeoutSeconds int      `json:"dial_timeout_seconds"`
+	DNSUpstreams       []string `json:"dns_upstreams"`
+	DNSTimeoutSeconds  int      `json:"dns_timeout_seconds"`
+	L3WhitelistCIDRs   []string `json:"l3_whitelist_cidrs"`
+	L7BlacklistDomains []string `json:"l7_blacklist_domains"`
+	MetricsAddr        string   `json:"metrics_addr"`
 }
 
 // DefaultConfig returns a secure out-of-the-box configuration.

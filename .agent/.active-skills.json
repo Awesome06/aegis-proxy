@@ -5,6 +5,7 @@
     "active_skills":  [
                           "langs/go-systems",
                           "domain/zt-proxy",
-                          "langs/memory-safety"
+                          "langs/memory-safety",
+                          "ops/cicd-pipeline"
                       ]
 }

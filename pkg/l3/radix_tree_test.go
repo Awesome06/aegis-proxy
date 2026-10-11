@@ -253,4 +253,3 @@ func BenchmarkRadixTree_LongestPrefixMatch(b *testing.B) {
 		_, _ = tree.LongestPrefixMatch(ip)
 	}
 }
-
