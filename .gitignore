@@ -1,0 +1,23 @@
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Antigravity dynamic links (rebuilt per workspace; tracked via .agent/.active-skills.json)
+.agent/skills/*
+!.agent/skills/.gitkeep
+
+# Common language build & runtime artifacts
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+.venv/
+target/
