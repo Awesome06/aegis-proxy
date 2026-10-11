@@ -68,7 +68,7 @@ jobs:
           fi
 
       - name: Upload Build Artifact
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf6581a12fe429233114 # v4.4.3
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/*
@@ -99,7 +99,7 @@ jobs:
       - name: Generate SHA256 Checksums
         working-directory: dist
         run: |
-          sha256sum * > checksums.txt
+          sha256sum -- * > checksums.txt
           cat checksums.txt
 
       - name: Attest Build Provenance (SLSA v1.0)
