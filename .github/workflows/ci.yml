@@ -73,7 +73,7 @@ jobs:
           check-latest: true
 
       - name: Run Unit & Integration Tests
-        run: go test -v -covermode=atomic -coverprofile=coverage.out ./...
+        run: go test -v -covermode=atomic "-coverprofile=coverage.out" ./...
 
       - name: Run Race Detector (Linux Only)
         if: runner.os == 'Linux'
